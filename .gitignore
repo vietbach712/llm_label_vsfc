@@ -1,0 +1,3 @@
+data/raw_*.parquet
+data/data_seg.csv
+__pycache__/

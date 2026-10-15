@@ -1,0 +1,7 @@
+pandas
+pyarrow
+scikit-learn
+matplotlib
+openai
+# chỉ cần trên Colab cho PhoBERT:
+# torch transformers underthesea
