@@ -1,0 +1,2 @@
+model,source,n_target,n,seed,acc,macro_f1,kappa,minutes
+phobert,human,500,500,0,0.884,0.6051,0.7788,0.3
