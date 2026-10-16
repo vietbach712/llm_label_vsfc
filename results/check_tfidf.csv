@@ -1,0 +1,6 @@
+model,source,n_target,n,seed,acc,macro_f1,kappa
+tfidf_lr,human,250,250,0,0.811,0.5786,0.6444
+tfidf_lr,human,500,500,0,0.826,0.607,0.6748
+tfidf_lr,human,1000,1000,0,0.843,0.6274,0.7064
+tfidf_lr,human,2000,2000,0,0.847,0.634,0.716
+tfidf_lr,human,4000,4000,0,0.861,0.6715,0.7448
