@@ -18,9 +18,9 @@ from common import LABELS, load_data, score
 # ---------------- CẤU HÌNH: chọn MỘT khối, xoá dấu # ----------------  # SỬA
 # (a) Gemini (lấy key tại aistudio.google.com)
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-MODEL = "gemini-2.5-flash"          # SỬA: kiểm tra tên model rẻ mới nhất trên trang Gemini API
+MODEL = "gemini-3.5-flash-lite"        # SỬA: kiểm tra tên model rẻ mới nhất trên trang Gemini API
 API_KEY = os.environ.get("LLM_API_KEY")
-WORKERS = 8                          # số request song song; gặp lỗi 429 thì giảm xuống 2-4
+WORKERS = 1                        # số request song song; gặp lỗi 429 thì giảm xuống 2-4
 # (b) OpenAI
 # BASE_URL = "https://api.openai.com/v1"; MODEL = "gpt-4o-mini"; API_KEY = os.environ.get("LLM_API_KEY"); WORKERS = 8
 # (c) Qwen local qua Ollama:  ollama pull qwen2.5:7b-instruct  &&  ollama serve
@@ -65,19 +65,37 @@ def parse(raw):
     found = [lab for lab in LABELS if re.search(rf"\b{lab}\b", t)]
     return found[0] if len(found) == 1 else "INVALID"
 
-
 def call(client, prompt, text):
     for attempt in range(6):
         try:
+            time.sleep(5)
+
             r = client.chat.completions.create(
-                model=MODEL, temperature=0,
-                messages=[{"role": "system", "content": SYSTEM},
-                          {"role": "user", "content": PROMPTS[prompt].format(text=text)}])
+                model=MODEL,
+                temperature=0,
+                messages=[
+                    {"role": "system", "content": SYSTEM},
+                    {
+                        "role": "user",
+                        "content": PROMPTS[prompt].format(text=text)
+                    }
+                ]
+            )
             return r.choices[0].message.content
-        except Exception as e:  # lỗi mạng / 429 quá giới hạn: chờ rồi thử lại
+
+        except Exception as e:
+            print(f"  lỗi: {type(e).__name__}: {e}", flush=True)
+
+            if attempt == 5:
+                break
+
             wait = 2 ** attempt * 2
-            print(f"  lỗi: {type(e).__name__}: {str(e)[:120]} -> thử lại sau {wait}s")
+            if getattr(e, "status_code", None) == 429:
+                wait = max(60, wait)
+
+            print(f"  Thử lại sau {wait}s...", flush=True)
             time.sleep(wait)
+
     return None
 
 
