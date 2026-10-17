@@ -16,13 +16,16 @@ from openai import OpenAI
 from common import LABELS, load_data, score
 
 # ---------------- CẤU HÌNH: chọn MỘT khối, xoá dấu # ----------------  # SỬA
-# (a) Gemini (lấy key tại aistudio.google.com)
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-MODEL = "gemini-3.5-flash-lite"        # SỬA: kiểm tra tên model rẻ mới nhất trên trang Gemini API
-API_KEY = os.environ.get("LLM_API_KEY")
-WORKERS = 1                        # số request song song; gặp lỗi 429 thì giảm xuống 2-4
+# # (a) Gemini (lấy key tại aistudio.google.com)
+# BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# MODEL = "gemini-3.5-flash-lite"        # SỬA: kiểm tra tên model rẻ mới nhất trên trang Gemini API
+# API_KEY = os.environ.get("LLM_API_KEY")
+# WORKERS = 1                        # số request song song; gặp lỗi 429 thì giảm xuống 2-4
 # (b) OpenAI
-# BASE_URL = "https://api.openai.com/v1"; MODEL = "gpt-4o-mini"; API_KEY = os.environ.get("LLM_API_KEY"); WORKERS = 8
+BASE_URL = "https://api.openai.com/v1"
+MODEL = "gpt-6-luna"
+API_KEY = os.environ.get("LLM_API_KEY")
+WORKERS = 1
 # (c) Qwen local qua Ollama:  ollama pull qwen2.5:7b-instruct  &&  ollama serve
 # BASE_URL = "http://localhost:11434/v1"; MODEL = "qwen2.5:7b-instruct"; API_KEY = "ollama"; WORKERS = 2
 # ---------------------------------------------------------------------
@@ -66,35 +69,91 @@ def parse(raw):
     return found[0] if len(found) == 1 else "INVALID"
 
 def call(client, prompt, text):
-    for attempt in range(6):
-        try:
-            time.sleep(5)
+    import random
+    import threading
+    import time
 
-            r = client.chat.completions.create(
+    # Các luồng cùng biết khi nào phải dừng gửi request.
+    stop = call.__dict__.setdefault("_stop", threading.Event())
+
+    for attempt in range(3):
+        if stop.is_set():
+            raise RuntimeError("Đã dừng gửi request vì API gặp lỗi cần xử lý.")
+
+        try:
+            r = client.with_options(max_retries=0).chat.completions.create(
                 model=MODEL,
                 temperature=0,
+                reasoning_effort="none",
                 messages=[
                     {"role": "system", "content": SYSTEM},
                     {
                         "role": "user",
-                        "content": PROMPTS[prompt].format(text=text)
-                    }
-                ]
+                        "content": PROMPTS[prompt].format(text=text),
+                    },
+                ],
             )
             return r.choices[0].message.content
 
         except Exception as e:
             print(f"  lỗi: {type(e).__name__}: {e}", flush=True)
 
-            if attempt == 5:
-                break
+            status = getattr(e, "status_code", None)
+            code = getattr(e, "code", None)
+            error_type = getattr(e, "type", None)
+            body = getattr(e, "body", None)
 
-            wait = 2 ** attempt * 2
-            if getattr(e, "status_code", None) == 429:
-                wait = max(60, wait)
+            if isinstance(body, dict):
+                detail = body.get("error", body)
+                if isinstance(detail, dict):
+                    code = code or detail.get("code")
+                    error_type = error_type or detail.get("type")
 
-            print(f"  Thử lại sau {wait}s...", flush=True)
-            time.sleep(wait)
+            quota_errors = {
+                "insufficient_quota",
+                "credit_balance_exhausted",
+                "organization_spend_limit_exceeded",
+                "project_spend_limit_exceeded",
+                "organization_usage_limit_exceeded",
+            }
+
+            if (
+                status in (400, 401, 402, 403, 404)
+                or code in quota_errors
+                or error_type in quota_errors
+                or isinstance(e, (AttributeError, TypeError))
+            ):
+                stop.set()
+                raise RuntimeError(
+                    f"Đã dừng gửi request; cần kiểm tra API/key/model/billing: {e}"
+                ) from e
+
+            if stop.is_set():
+                raise RuntimeError("Đã dừng gửi request vì API gặp lỗi cần xử lý.") from e
+
+            if attempt == 2:
+                return None
+
+            response = getattr(e, "response", None)
+            retry_after = (
+                response.headers.get("Retry-After")
+                if response is not None
+                else None
+            )
+
+            try:
+                wait = max(0.0, float(retry_after))
+            except (TypeError, ValueError):
+                wait = 2 ** (attempt + 1)
+
+            if wait > 120:
+                stop.set()
+                raise RuntimeError(
+                    f"API yêu cầu chờ {wait:g} giây; đã dừng để bố chạy tiếp sau. {e}"
+                ) from e
+
+            print(f"  Thử lại sau {wait:.1f}s...", flush=True)
+            time.sleep(wait + random.uniform(0, 0.5))
 
     return None
 
