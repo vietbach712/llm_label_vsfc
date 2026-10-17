@@ -149,7 +149,7 @@ def call(client, prompt, text):
             if wait > 120:
                 stop.set()
                 raise RuntimeError(
-                    f"API yêu cầu chờ {wait:g} giây; đã dừng để bố chạy tiếp sau. {e}"
+                    f"API yêu cầu chờ {wait:g} giây; đã dừng để bạn chạy tiếp sau. {e}"
                 ) from e
 
             print(f"  Thử lại sau {wait:.1f}s...", flush=True)
