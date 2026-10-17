@@ -20,7 +20,7 @@ Additional experiments examine **filtering examples on which both prompts agree*
 
 We use the **sentiment classification** task from [UIT-VSFC on Hugging Face](https://huggingface.co/datasets/uitnlp/vietnamese_students_feedback), a corpus of Vietnamese student feedback. The dataset's topic labels are not used in this project.
 
-The fixed subset contains **5,300 sentences**. The following class counts were checked against the `support` values in the [per-class classification report](results/teacher_classification_report.txt):
+The fixed subset contains **5,300 sentences**. The class counts below are computed directly from the committed [data/data.csv](data/data.csv). Per-class metrics can be reproduced with [analyze_labels.py](analyze_labels.py).
 
 | Split | Negative | Neutral | Positive | Total | Purpose |
 | --- | ---: | ---: | ---: | ---: | --- |
@@ -30,7 +30,7 @@ The fixed subset contains **5,300 sentences**. The following class counts were c
 
 Neutral accounts for only **4.00% of train**, **4.67% of dev**, and **5.30% of test**. The primary metric is therefore **macro-F1**, which gives equal weight to the F1 score of each class. Accuracy and Cohen's kappa are additional metrics.
 
-The data preparation design specifies seed 42 and samples train, dev, and test from their corresponding original splits. The resulting `data/data.csv` remains fixed throughout the project and is shared by both team members.
+The committed [prepare_data.py](prepare_data.py) uses seed 42, stratified sampling, and the corresponding original train, validation, and test splits. It removes duplicate text within each original split and excludes dev/test text from the training pool. The resulting `data/data.csv` remains fixed throughout the project and is shared by both team members.
 
 Experimental rules:
 
@@ -50,13 +50,59 @@ Experimental rules:
 | Base URL | `https://api.openai.com/v1` |
 | Model | `gpt-6-luna` |
 | API key | Environment variable `LLM_API_KEY` |
-| Prompts | `v1`, `v2` |
+| Prompts | `v1`, `v2`, defined in [label_llm.py](label_llm.py) |
+| Generation settings | `temperature=0`, `reasoning_effort="none"` |
+| Request workers | `WORKERS = 1` |
 | Label files | `data/llm_v1.csv`, `data/llm_v2.csv` |
 | Labels used by students | `data/llm_final.csv`, copied from v2 |
 
-The A2 experiment log records **5,300 labeled sentences per prompt**, with `INVALID = 0`. Responses are cached in `llm_cache/` for reuse. All teacher results in this README refer to Luna.
+Each Luna prompt has **5,300 labeled sentences**, with `INVALID = 0`. The committed CSV files match their corresponding Luna cache records for every ID, label, and raw response. `data/llm_final.csv` matches `data/llm_v2.csv` and all **5,300 labels** in [gpt-6-luna_v2.jsonl](llm_cache/gpt-6-luna_v2.jsonl), with no missing IDs or label mismatches. All final teacher/student results reported below use the Luna labels. Earlier Gemini trials are documented separately in Section 3.4.
 
-In the original design, v1 provides basic classification instructions, while v2 adds labeling conventions and examples, including how to handle suggestions for improvement. This describes the prompt strategy. **The exact final prompts must be taken from the prompt files or `label_llm.py` used to generate the labels**, rather than reconstructed from examples or scores. Those files were not included in the results package used for this summary.
+The exact system message and both prompt templates are committed in [label_llm.py](label_llm.py), under `SYSTEM` and `PROMPTS`. v1 gives basic sentiment classification instructions. v2 adds explicit labeling conventions and four examples, including a negative label for suggestions for improvement. The prompt examples are described in the source as manually written rather than taken from test data. Git history shows the same prompt strings across the initial, Gemini, and Luna code revisions.
+
+<details>
+<summary>Exact prompts used by the labeling script (Vietnamese)</summary>
+
+**System message**
+
+```text
+Bạn là người gán nhãn dữ liệu cẩn thận. Chỉ trả lời đúng một từ.
+```
+
+**Prompt v1**
+
+```text
+Phân loại cảm xúc của câu phản hồi sau của sinh viên về môn học/giảng viên.
+Trả lời đúng MỘT từ: negative, neutral hoặc positive.
+
+Câu: {text}
+Nhãn:
+```
+
+**Prompt v2**
+
+```text
+Phân loại cảm xúc của câu phản hồi sau của sinh viên về môn học/giảng viên/cơ sở vật chất.
+
+Hướng dẫn:
+- positive: khen, hài lòng, cảm ơn, chúc, mong được học tiếp với giảng viên.
+- negative: chê, phàn nàn, VÀ cả các góp ý/đề xuất cải thiện (câu có "nên", "cần", "mong ... hơn") vì chúng ngụ ý hiện tại chưa tốt.
+- neutral: chỉ kể sự việc hoặc nói về bản thân, không đánh giá tốt/xấu.
+
+Ví dụ:
+Câu: cô giảng bài rất dễ hiểu . -> positive
+Câu: phòng học nóng , máy chiếu bị mờ . -> negative
+Câu: thầy nên cho thêm bài tập về nhà . -> negative
+Câu: em học môn này vào học kỳ hè . -> neutral
+
+Trả lời đúng MỘT từ: negative, neutral hoặc positive.
+Câu: {text}
+Nhãn:
+```
+
+`{text}` is replaced with the original Vietnamese feedback. The prompts remain in their original language for reproducibility.
+
+</details>
 
 ### 3.2. Dev Results Used for Prompt Selection
 
@@ -65,13 +111,13 @@ In the original design, v1 provides basic classification instructions, while v2 
 | v1 | 300 | 0 | 0.8433 | 0.7135 | 0.7279 |
 | **v2** | **300** | **0** | **0.9100** | **0.7578** | **0.8350** |
 
-We selected **v2** because dev macro-F1 improved by **0.0443**, or **4.43 percentage points**. These values were checked against the A1 log; the v2 dev results also match `teacher.csv`.
+We selected **v2** because dev macro-F1 improved by **0.0443**, or **4.43 percentage points**. These values were independently recomputed from the committed Luna caches and the fixed dev set; the v2 dev results also match `teacher.csv`.
 
-The A2 log additionally records v1 macro-F1 of **0.7460 on train** and **0.7254 on test**. Corresponding accuracy values are 0.8775 and 0.8580, and kappa values are 0.7799 and 0.7459. These are descriptive results from the completed runs, not the basis for prompt selection.
+The committed Luna v1 labels additionally yield macro-F1 of **0.7460 on train** and **0.7254 on test**. Corresponding accuracy values are 0.8775 and 0.8580, and kappa values are 0.7799 and 0.7459. These are descriptive results from the completed runs, not the basis for prompt selection.
 
 ### 3.3. Teacher v2 Performance
 
-Sources: [teacher.csv](results/teacher.csv) and [a3_report.txt](results/a3_report.txt).
+Sources: [teacher.csv](results/teacher.csv), [llm_final.csv](data/llm_final.csv), and [analyze_labels.py](analyze_labels.py). The metrics and class counts were recomputed from the committed data and final labels.
 
 | Split | Sentences | INVALID | Accuracy | Macro-F1 | Kappa |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -96,6 +142,29 @@ Per-class test results:
 ![Teacher confusion matrix on test](figs/confusion_test.png)
 
 Rows represent human labels and columns represent LLM labels. Both matrices match the sample counts and metrics in the teacher reports.
+
+### 3.4. Initial Gemini Trials and the Switch to Luna
+
+Labeling started with Gemini. The team reported repeated quota/rate-limit errors (HTTP 429), so it switched to OpenAI Luna to complete the annotation work. This was an operational change during the project, rather than a decision that Luna had the best dev score among teachers. The final experiment reran **both prompts on all 5,300 sentences using Luna**. Gemini and Luna responses remain in separate model-specific cache files.
+
+The retained Gemini caches allow the following dev results to be recomputed on the same 300 sentences:
+
+| Initial teacher | Prompt | Valid dev labels | Accuracy | Macro-F1 | Kappa |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `gemini-3.5-flash-lite` | v1 | 300 | 0.8333 | 0.6897 | 0.7148 |
+| `gemini-3.5-flash-lite` | v2 | 300 | 0.9167 | 0.8156 | 0.8492 |
+
+Sources: [Gemini v1 cache](llm_cache/gemini-3.5-flash-lite_v1.jsonl) and [Gemini v2 cache](llm_cache/gemini-3.5-flash-lite_v2.jsonl). When an ID has multiple cache records, the most recent non-null response is used, matching the cache-loading logic in `label_llm.py`.
+
+Gemini v2 scored higher than Luna v2 on dev (**0.8156 vs. 0.7578**). We therefore do not claim that Luna was the best teacher. The Gemini v2 cache covers 347 distinct train IDs, but only 330 have a successful cached response; it is not a complete 4,000-sentence training-label set. No full Gemini test evaluation or Gemini-trained student comparison is presented here.
+
+For provenance, the final CSV matches the complete Luna v2 cache on every ID and label. The presence of old Gemini cache files does not mean those labels were mixed into the final experiment.
+
+### 3.5. API Usage, Cost, and Labeling Time
+
+The two Luna caches contain **10,600 completed records** in total: 5,300 for v1 and 5,300 for v2. This is a count of saved responses, not a measurement of billable requests or tokens.
+
+Cache records store only `id`, `raw`, and `llm_label`. The current labeling script does not persist response `usage`, timestamps, request duration, or monetary charges. Exact token counts, API cost, and total labeling wall time cannot be recovered from these caches. They are **not measured in the published artifacts**, so this project makes no quantitative cost-saving claim. A provider usage export for the correct project and date range would be needed to add billing totals, distinguishing final Luna labeling from earlier trials where possible.
 
 ## 4. Students and Completed Experiments
 
@@ -130,11 +199,28 @@ The experiment log confirms that Viet Bach ran seed 1 and included it in `phober
 
 ### 4.3. Model Settings and Reproducibility
 
-The reference code in the project guide uses TF-IDF unigrams/bigrams with `sublinear_tf=True` and `min_df=1`, followed by Logistic Regression with `C=4.0`, `class_weight="balanced"`, and `max_iter=2000`. Its PhoBERT setup uses `vinai/phobert-base`, word-segmented inputs, 4 epochs, a learning rate of `2e-5`, batch size 32, and maximum length 128. It uses AdamW, weight decay 0.01, 10% warmup, and gradient clipping at 1.0.
+The committed training scripts define the following setup. The recorded experiment commands use these defaults for the main runs.
 
-**These are reference settings from the project guide, not a verified configuration record for each completed run.** The CSV files and log confirm models, label sources, sample sizes, seeds, and scores, but do not capture all hyperparameters. The actual `.py` files and notebooks must be checked before claiming exact reproduction. The reviewed results package also lacks a dependency lockfile, model revision, device logs, and epoch logs.
+| Component | Setting in the committed code |
+| --- | --- |
+| TF-IDF features | `ngram_range=(1, 2)`, `sublinear_tf=True`, `min_df=1` |
+| Logistic Regression | `C=4.0`, `class_weight="balanced"`, `max_iter=2000` |
+| PhoBERT checkpoint | `vinai/phobert-base`, three-label classification head |
+| Word segmentation | `underthesea.word_tokenize(text, format="text")` |
+| Segmentation cache | `data/data_seg.csv`, generated on the first run |
+| PhoBERT epochs | 4 fixed epochs; no early stopping |
+| Learning rate | `2e-5` |
+| Batch size | 32 |
+| Maximum sequence length | 128 tokens, with truncation and batch padding |
+| Optimizer | AdamW, weight decay 0.01 |
+| Learning-rate schedule | Linear schedule with 10% warmup |
+| Gradient clipping | Maximum norm 1.0 |
+| Precision | CUDA autocast with `float16` when running on GPU |
+| Random seeds | NumPy and PyTorch seeded with the run's seed |
 
-The PhoBERT `minutes` column records the runtime reported by the script for each run. The project does not yet contain sufficient measurements to establish an end-to-end cost or speed comparison between teacher and students.
+Sources: [train_tfidf.py](train_tfidf.py), [train_phobert.py](train_phobert.py), and [common.py](common.py). The dependency versions and pretrained model revision are not pinned, and device/epoch logs are not committed. Seeds therefore do not guarantee bit-for-bit reproducibility across environments.
+
+The PhoBERT `minutes` column records the script's elapsed time for each training/evaluation run, after shared data preparation and tokenizer loading. It does not measure total Colab setup time, teacher-labeling time, or end-to-end project cost.
 
 ## 5. Main Results
 
@@ -170,7 +256,7 @@ At 2,000 examples, `llm` scores 0.7708 and `human` scores 0.6807, but both confi
 
 ![PhoBERT learning curve](figs/curve_phobert.png)
 
-Hollow markers indicate configurations with one seed. Connecting lines show trends between evaluated training sizes; they do not represent additional experiments between those sizes.
+The committed figures are produced by `make_report.py` and use Vietnamese labels and filled markers. “Nhãn người” means human labels, “Nhãn LLM” means LLM labels, and “Số mẫu train” means training examples. The script replaces an unavailable single-seed standard deviation with zero for plotting; a missing error bar therefore does not establish zero variability. Use the seed counts in the tables above when interpreting the curves. Connecting lines show trends between evaluated sizes, not additional experiments.
 
 ### 5.3. Answers to the Research Questions
 
@@ -210,7 +296,7 @@ Summary source: [summary.md](results/summary.md). This README retains extra deci
 
 Agreement filtering does not improve performance consistently across training sizes. At n = 2,000, `llm_agree` exceeds `llm` by approximately **0.0056** macro-F1, but at n = 1,000 it is slightly lower. `mix500` achieves **0.6518** at n = 4,000, improving over `llm` by **0.0033** while remaining below `human` at 0.6715. This mean improvement is small relative to the variability of `mix500` across seeds.
 
-`—` means no result is available for that configuration. The CSV contains no `llm_agree` result at 4,000 examples. The reference code skips sizes larger than the agreement pool, but the reviewed records do not state the exact agreement count. `mix500` was evaluated only for n > 500.
+`—` means no result is available for that configuration. The two committed Luna label files agree on **3,559 of 4,000 training sentences (88.975%)**. `common.py` skips `llm_agree` sizes larger than this pool, which explains the absence of a 4,000-example result. `mix500` was evaluated only for n > 500.
 
 ### 6.2. PhoBERT: Comparison at Seed 0
 
@@ -221,7 +307,7 @@ Agreement filtering does not improve performance consistently across training si
 
 This table uses **seed 0 for both the baselines and B4 variants**, rather than comparing a single-seed variant with a three-seed baseline mean. At n = 2,000, `llm_agree` improves over `llm` by 0.0073, while `mix500` decreases by 0.0118. With only one seed, these changes cannot yet be considered stable.
 
-**Unchanged B3/B4 summary tables:** the reference `make_report.py` tables and research-question answers compare only `human` and `llm`. Adding `llm_agree` and `mix500` does not change those lines. B4 results are still present in the CSV files and are reported separately here and in the learning curves.
+**Unchanged B3/B4 summary tables:** the committed `make_report.py` tables and research-question answers compare only `human` and `llm`. Adding `llm_agree` and `mix500` does not change those lines. B4 results are still present in the CSV files and are reported separately here and in the learning curves.
 
 ## 7. Analysis of 60 Label Disagreements
 
@@ -261,7 +347,7 @@ The tagged CSV currently has five columns and no `note` column. With 29 cases as
 | --- | --- |
 | `common.py` | Load and merge data, sample training examples, compute metrics, and append results |
 | `prepare_data.py` | Create the initial fixed data subset |
-| `label_llm.py` and prompt files | Generate teacher labels and reuse cached responses |
+| `label_llm.py` | Defines `SYSTEM` and both `PROMPTS`, generates teacher labels, and reuses cached responses |
 | `analyze_labels.py` | Evaluate the teacher, plot confusion matrices, and sample disagreements |
 | `train_tfidf.py` | Train TF-IDF + Logistic Regression |
 | `train_phobert.py` | Train PhoBERT |
@@ -278,17 +364,26 @@ Student CSVs contain `model`, `source`, `n_target`, `n`, `seed`, `acc`, `macro_f
 
 ### 9.1. Environment
 
-The team uses Python 3.10 on Windows for teacher labeling and TF-IDF, and Google Colab for PhoBERT. The original guide specifies a T4 GPU; device logs for the completed runs are not included in the reviewed results package.
+The team used Python 3.10 on Windows for teacher labeling and TF-IDF, and Google Colab for PhoBERT. The original workflow targets a T4 GPU. The training script uses CUDA if available and otherwise falls back to CPU; completed-run device logs are not committed.
 
-Clone the repository using GitHub's **Code** button, open a terminal in its root directory, and run the following in Windows CMD:
+Clone the repository and create a local Python environment in Windows CMD:
 
 ```bat
+git clone https://github.com/vietbach712/llm_label_vsfc.git
+cd llm_label_vsfc
 py -3.10 -m venv .venv
 .venv\Scripts\activate
 python -m pip install -r requirements.txt
 ```
 
-If `.venv` already exists, activate it. Keep the provided `data/data.csv` fixed. `prepare_data.py` is the one-time initialization step and should not be rerun over the finalized dataset.
+If the repository and `.venv` already exist, enter the repository and activate the environment instead of cloning or creating them again. `requirements.txt` installs pandas, pyarrow, scikit-learn, matplotlib, and the OpenAI SDK. It lists PhoBERT dependencies only as comments, so install them explicitly in the Colab environment:
+
+```python
+%pip install -r requirements.txt
+%pip install torch transformers underthesea
+```
+
+Keep the provided `data/data.csv` fixed. `prepare_data.py` is the one-time initialization step and should not be rerun over the finalized dataset.
 
 ### 9.2. Regenerate Reports from Existing Results
 
@@ -304,9 +399,9 @@ Outputs:
 - `figs/curve_tfidf_lr.png`
 - `figs/curve_phobert.png`
 
-The reference script reads `results/tfidf*.csv` and `results/phobert*.csv`. Do not put duplicate or backup result files matching those prefixes in that directory. Files named `check_*.csv` do not match these patterns.
+The committed script reads `results/tfidf*.csv` and `results/phobert*.csv`. Do not put duplicate or backup result files matching those prefixes in that directory. Files named `check_*.csv` do not match these patterns.
 
-The figures distributed with this README were redrawn from the same CSVs with English labels and distinct markers for single-seed configurations. The original reporting script may produce a different presentation or language. The CSV values and actual seed counts remain the basis for interpretation.
+This command regenerates the currently committed Vietnamese figure labels and the Vietnamese `summary.md`. The README explains the results in English. CSV values and actual seed counts remain the basis for interpretation.
 
 The following read-only command checks for duplicate configurations and prints seed counts:
 
@@ -324,7 +419,7 @@ This reads saved labels and computes metrics without calling the LLM. It rewrite
 
 ### 9.4. Retrain Students
 
-These commands follow the script interfaces in the project guide. Check hyperparameters against the actual code and notebooks used for the reported runs before attempting exact reproduction. New outputs are written to **`runs/reproduction/`**, separately from the published files in `results/`.
+These commands use the committed scripts and the settings listed in Section 4.3. New outputs are written to **`runs/reproduction/`**, separately from the published files in `results/`.
 
 Start a fresh reproduction only when the two output CSVs below do not already exist. After an interrupted run, inspect completed configurations and run only the missing ones: the scripts append rows and do not automatically prevent duplicates.
 
@@ -344,7 +439,7 @@ PhoBERT, after the Colab notebook has entered the repository directory and insta
 !python train_phobert.py --llm_file2 data/llm_v1.csv --sources llm_agree mix500 --sizes 1000 2000 --seeds 0 --out runs/reproduction/phobert_B.csv
 ```
 
-`nvidia-smi` checks GPU availability. The reference PhoBERT script creates `data/data_seg.csv` for word segmentation when needed. Keep segmentation consistent across runs, and save Colab results to Drive or download them after completion.
+`nvidia-smi` checks GPU availability. The PhoBERT script creates `data/data_seg.csv` for word segmentation when needed; this generated cache is not currently committed. Keep segmentation consistent across runs, and save Colab results to Drive or download them after completion.
 
 The original `make_report.py` reads `results/`, not `runs/reproduction/`. To report a reproduction, use a separate checkout and place **only that run's result CSVs** in `results/`, along with the corresponding `teacher.csv`. Do not merge repeated configurations from separate runs as though they were independent seeds.
 
@@ -370,17 +465,17 @@ python label_llm.py --prompt v1 --split train test
 python label_llm.py --prompt v2 --split train test
 ```
 
-This project selected v2, so `llm_final.csv` is a copy of `llm_v2.csv`. Cached responses must belong to the correct model and prompt; call the API only for missing examples. Check the actual version of `label_llm.py` to confirm cache identification before rerunning. Model and API behavior can change over time, so a fresh request may not reproduce every label exactly.
+This project selected v2, so `llm_final.csv` is a copy of `llm_v2.csv`. The cache filename includes both the model name and prompt version, for example `llm_cache/gpt-6-luna_v2.jsonl`. The script reuses the latest non-null response for each ID and requests only missing IDs. It still requires `LLM_API_KEY` even if every requested sentence is already cached, because it constructs an API client before exporting labels. To inspect current results without a key, use the saved CSVs and the analysis/reporting scripts. Keep prompt strings fixed: the cache key uses the prompt version name, not a hash of its contents. Model and API behavior can change over time, so a fresh request may not reproduce every label exactly.
 
 ## 10. Limitations and Future Work
 
-- **Limited scope:** one subset of one Vietnamese dataset and one teacher; results may not generalize to other domains.
+- **Limited scope:** the final student comparison uses one subset of one Vietnamese dataset and one teacher. Earlier Gemini dev trials are not a full multi-teacher benchmark; results may not generalize to other domains.
 - **Few neutral examples:** only 14 dev and 53 test examples belong to the neutral class. Its metrics can vary substantially, and high accuracy can coexist with low neutral F1.
 - **Uneven seed coverage:** the main PhoBERT configurations have three seeds, but sizes 250 and 2,000 and the B4 variants have one. More seeds are needed to assess stability.
 - **No statistical significance tests:** standard deviation across seeds describes variability but does not establish equivalence or statistically significant superiority.
 - **Coarse interpolation:** estimates of 1,001 and 2,177 labels are not directly evaluated training sizes and depend on interpolation against log training size.
 - **Subjective disagreement analysis:** the 60 cases have no measured inter-reviewer coding agreement. `KHAC` remains broad and lacks case-specific notes.
-- **Incomplete reproduction metadata:** the reviewed package lacks exact final prompt text, locked dependencies, complete executed configurations, and GPU/epoch logs. Token usage, API costs, and total teacher runtime were not comprehensively recorded, so no quantitative cost-saving claim is made.
+- **Incomplete runtime metadata:** exact prompts and training settings are available in the committed code, but dependencies and model revisions are not pinned and GPU/epoch logs are absent. Cache records do not retain token usage, API charges, or labeling timestamps; costs and total teacher runtime remain unmeasured.
 - **Selection effects in filtering:** `llm_agree` can change sentence difficulty and class distribution as well as label quality.
 
 Next steps include reviewing the neutral/suggestion boundary, adding case-specific notes, running more PhoBERT seeds, saving student test predictions for error analysis, and measuring actual costs. Future prompt or hyperparameter changes should use dev or another predefined validation protocol; the current test set has already been inspected in this report.
@@ -398,7 +493,7 @@ This reflects the actual experiment log. Seed 1 was run by B, although the initi
 
 - [UIT-VSFC dataset card](https://huggingface.co/datasets/uitnlp/vietnamese_students_feedback). Nguyen et al., *UIT-VSFC: Vietnamese Students’ Feedback Corpus for Sentiment Analysis*, KSE 2018. DOI: `10.1109/KSE.2018.8573337`.
 - [PhoBERT model card](https://huggingface.co/vinai/phobert-base). Dat Quoc Nguyen and Anh Tuan Nguyen, *PhoBERT: Pre-trained language models for Vietnamese*, Findings of EMNLP 2020; [arXiv:2003.00744](https://arxiv.org/abs/2003.00744).
-- Experiment evidence: CSV files in `results/`, `a3_report.txt`, `teacher_classification_report.txt`, the two confusion matrices, and the team's experiment log.
-- Reference procedure: the Vietnamese project guide, *Hướng dẫn project LLM gán nhãn → train mô hình nhỏ (2 người, 3 ngày)*. Guide defaults are distinguished from settings verified from completed-run records.
+- Experiment evidence: committed [data](data/), [model-specific caches](llm_cache/), [result CSVs and summary](results/), and [figures](figs/). Per-class reports are reproducible with `analyze_labels.py`. The team's experiment log is an additional project record.
+- Reference procedure: the Vietnamese project guide, *Hướng dẫn project LLM gán nhãn → train mô hình nhỏ (2 người, 3 ngày)*. The reproduction commands above refer to the committed scripts.
 
 The dataset, pretrained model, and dependencies retain their respective usage terms. This README does not assign a license to the repository.
