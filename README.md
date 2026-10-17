@@ -343,7 +343,9 @@ Source: [llm_errors_tagged.csv](results/llm_errors_tagged.csv).
 | `GOP_Y` | 2 | 3.33% | Different interpretations of suggestions for improvement |
 | `MIA_MAI` | 0 | 0.00% | Sarcasm or ironic wording |
 
-These percentages describe **the sample of 60 disagreements**, not the error rate over all 5,300 sentences. `KHAC` is the largest group, followed by ambiguity involving neutral sentiment. The finalized annotations do not support claiming that suggestions for improvement are the most common disagreement type.
+These percentages describe **the sample of 60 disagreements**, not the error rate over all 5,300 sentences. `KHAC` is the largest group, followed by ambiguity involving neutral sentiment.
+
+Counted by the finalized codes alone, `GOP_Y` is small (**2 of 60**). However, **19 of the 29 `KHAC` cases** have a positive human label and a negative v2 prediction. The analysis below suggests that v2 may apply its suggestion/improvement rule too broadly to positive descriptions. This is an interpretation of the observed pattern, not a confirmed causal explanation.
 
 ### A Recurring Pattern Within `KHAC`
 
