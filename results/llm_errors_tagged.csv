@@ -1,0 +1,61 @@
+id,text,human_label,llm_label,error_type
+train_01874,giảng viên rất đảm bảo giờ lên lớp .,neutral,positive,TRUNG_TINH
+train_02466,"mong cô sẽ dạy các môn liên quan trực tiếp tới lập trình như csharp , java .",positive,negative,KHAC
+train_00600,nghiêm khắc .,positive,neutral,TRUNG_TINH
+train_01203,cố gắng làm nhiều bài tập .,positive,negative,KHAC
+train_01847,nhưng vẫn đạt điểm cao .,negative,positive,KHAC
+train_01155,"rèn luyện kiến thức chuyên môn , tận tâm , nhiệt tình hơn .",positive,negative,KHAC
+train_02037,phòng máy ngon hơn .,negative,positive,GOP_Y
+train_01195,có lịch học bù đã tự sắp .,positive,neutral,TRUNG_TINH
+train_02516,cập nhật điểm thực hành và nhận xét đầy đủ .,positive,negative,KHAC
+train_03181,đảm bảo giờ lên lớp hiệu quả .,positive,negative,KHAC
+train_03617,cơ mà hình thức 2 mà dot căn bản tự học thôi .,negative,neutral,KHAC
+train_02887,một cuốn sách thật dày chỉ là một trong những tài liệu mà tụi em có thể tham khảo .,negative,neutral,KHAC
+train_02551,học theo đúng thời khóa biểu .,positive,neutral,TRUNG_TINH
+train_02545,quá thoải mái cho sinh viên .,negative,positive,KHAC
+train_03030,hướng dẫn cụ thế phương pháp cho từng bài thực hành .,positive,negative,KHAC
+train_02268,"cô chú trọng đến phát âm , bản chất .",positive,neutral,TRUNG_TINH
+train_03015,thêm giờ thực hành .,neutral,negative,TRUNG_TINH
+train_02166,thầy cho nhiều bài tập để thực hành .,positive,neutral,TRUNG_TINH
+train_03621,"thú vị , cải thiện khả năng giao tiếp bằng tiếng anh .",negative,positive,NGUOI_SAI
+train_00135,thường thì 8h kém 10 mới bắt đầu học .,negative,neutral,KHAC
+train_02770,tạo điều kiện cho học sinh phát biểu .,positive,negative,KHAC
+train_02416,không có gì phàn nàn về giảng viên .,neutral,positive,TRUNG_TINH
+train_01463,tạo nhiều trò chơi giúp sinh viên đỡ thấy nhàm chán .,positive,negative,KHAC
+train_02058,về trễ .,negative,neutral,KHAC
+train_00061,em học it002dotf23 thực hành 2 chứ không phải thực hành 1 .,negative,neutral,KHAC
+train_00378,cho bài tập mỗi tuần .,neutral,negative,TRUNG_TINH
+train_03208,thầy rất ít nổi nóng .,neutral,positive,TRUNG_TINH
+train_02825,nhưng thầy rất nhiệt tình giảng lại và đứng chỉ lại .,negative,positive,KHAC
+train_00235,"đảm bảo giờ dạy trên lớp đầy đủ , đúng giờ .",positive,negative,KHAC
+train_03820,em không có điều không hài lòng về giảng viên .,neutral,positive,TRUNG_TINH
+train_00955,có nhiều bài tập về nhà .,positive,negative,KHAC
+train_00720,có tương tác với học sinh .,neutral,positive,TRUNG_TINH
+train_01721,cám ơn thầy !,neutral,positive,TRUNG_TINH
+train_01378,"cho học sinh thuyết trình , chủ động .",positive,negative,KHAC
+train_01997,thầy đưa nhiều bài tâp !,neutral,negative,TRUNG_TINH
+train_01059,giảng viên đến đúng giờ và luôn điểm danh sau đó khoảng 5 phút .,positive,neutral,TRUNG_TINH
+train_02642,em rất mong muốn được học tiếp các môn liên quan như phân tích mã độc .,neutral,positive,TRUNG_TINH
+train_03992,đảm bảo giờ lên lớp và khối lượng kiến thức của môn học .,positive,negative,KHAC
+train_02855,sữa lỗi cho sinh viên .,positive,negative,KHAC
+train_02239,đúng như vậy luôn hi hi .,neutral,positive,KHAC
+train_02439,giảng viên vần tạo thêm động lực học cho sinh viên .,positive,negative,KHAC
+train_00724,sinh viên tiếp nhận tốt phần thực hành khác hẳn với lý thuyết .,positive,neutral,TRUNG_TINH
+train_01783,tạo điều kiện cho sinh viên .,positive,negative,KHAC
+train_00323,giảng viên dạy không nhàm chán .,neutral,positive,NGUOI_SAI
+train_01788,"em không học thầy wzjwz178 kỳ này , giáo viên thực hành có 2 người nên có lẽ daa nhầm .",negative,neutral,TRUNG_TINH
+train_00304,"đảm bảo giờ học , tiết học , nội dung .",positive,neutral,TRUNG_TINH
+train_01217,điểm danh đúng giờ .,positive,neutral,TRUNG_TINH
+train_00126,giúp sinh viên làm việc nhóm hiệu quả hơn .,positive,negative,KHAC
+train_03490,"đây là năm đầu tiên thầy giảng dạy , chúng em đều thông cảm !",negative,positive,KHAC
+train_03608,hướng dẫn lớp thực hành để làm bài tốt hơn .,positive,negative,KHAC
+train_01063,"thầy dạy nhiệt tình , tốt nhưng không phù hợp với tôi .",neutral,negative,HON_HOP
+train_02520,chuyện gì dễ thì cô dễ mà chuyện gì khó thì cô khó .,positive,neutral,TRUNG_TINH
+train_01775,đảm bảo đúng thời gian lên lớp !,positive,negative,KHAC
+train_01612,cho cái nhìn về môi trường bên ngoài doanh nghiệp .,positive,neutral,TRUNG_TINH
+train_01890,giảng dạy không tập trung vào chuyên môn .,positive,negative,NGUOI_SAI
+train_00545,"thầy rất nhiệt tình , nói rất nhiều đến khản giọng mà sức truyền tải không bằng thầy wzjwz159 .",positive,negative,HON_HOP
+train_02867,"sử dụng thư viện của standford , dùng các câu lệnh trong đó để áp dụng vào việc phân loại văn bản .",positive,neutral,TRUNG_TINH
+train_02585,thầy rất hiền và kiên trì giảng dạy cho lớp mặc dù môn học này đối với em không được hứng thú lắm .,negative,positive,HON_HOP
+train_02578,liên hệ thực tế đến các môn lập trình .,negative,neutral,GOP_Y
+train_02807,dạy quá thời gian quy định .,positive,negative,KHAC
